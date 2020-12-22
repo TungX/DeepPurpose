@@ -2,11 +2,12 @@ version: "2"
 services:
   worker:
     # replace username/repo:tag with your name and image details
-    image: ubuntu:latest
+    image: yinx/deeppurpose:v1
     command: bash
     # command: bash /source/init.sh
     volumes: 
-      - ./:/source      
+      - ./:/source
+      - ./data:/data
       # - ./rnn-text-classification-tf:/rnn-text-classification-tf
     # ports:
     #  - "1506:1506"
