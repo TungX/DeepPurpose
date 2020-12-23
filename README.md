@@ -338,11 +338,28 @@ We recommend to install it locally since Binder needs to be refreshed every time
 
 First time:
 ```bash
-git clone https://github.com/kexinhuang12345/DeepPurpose.git
+git clone https://github.com/TungX/DeepPurpose.git
 ## Download code repository
 
 cd DeepPurpose
 ## Change directory to DeepPurpose
+
+docker-compose up -d
+## Run docker
+
+docker exec -it deeppurpose_worker_1 bash
+## exec to docker
+
+export PATH=~/anaconda3/bin:$PATH
+## active conda
+
+source activate DeepPurpose
+## activate env
+
+### To install enviromment
+apt-get update
+
+apt install -y libxrender1 libsm6 libxext6
 
 conda env create -f environment.yml  
 ## Build virtual environment with all packages installed using conda
