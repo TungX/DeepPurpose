@@ -231,8 +231,8 @@ def process_BindingDB(path = None, df = None, y = 'Kd', binary = False, convert_
 							idx_str: 'Label'},
 							inplace=True)
 
-	df_want['Label'] = df_want['Label'].str.replace('>', '')
-	df_want['Label'] = df_want['Label'].str.replace('<', '')
+	df_want['Label'] = df_want['Label'].astype(str).str.replace('>', '')
+	df_want['Label'] = df_want['Label'].astype(str).str.replace('<', '')
 	df_want['Label'] = df_want['Label'].astype(float)
 
 	# have at least uniprot or pubchem ID
