@@ -20,12 +20,12 @@ train, val, test = data_process(X_drug, X_target, y,
                                 frac=[0.7,0.1,0.2])
 
 # Generate new model using default parameters; also allow model tuning via input parameters.
-# config = generate_config(drug_encoding, target_encoding, transformer_n_layer_target = 8)
-# net = models.model_initialize(**config)
+config = generate_config(drug_encoding, target_encoding, transformer_n_layer_target = 8)
+net = models.model_initialize(**config)
 
-# # Train the new model.
-# # Detailed output including a tidy table storing validation loss, metrics, AUC curves figures and etc. are stored in the ./result folder.
-# net.train(train, val, test)
+# Train the new model.
+# Detailed output including a tidy table storing validation loss, metrics, AUC curves figures and etc. are stored in the ./result folder.
+net.train(train, val, test)
 
 # # or simply load pretrained model from a model directory path or reproduced model name such as DeepDTA
 # net = models.model_pretrained(MODEL_PATH_DIR or MODEL_NAME)

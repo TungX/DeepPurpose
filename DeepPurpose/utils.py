@@ -42,6 +42,10 @@ sub_csv = pd.read_csv('./DeepPurpose/ESPF/subword_units_map_uniprot_2000.csv')
 idx2word_p = sub_csv['index'].values
 words2idx_p = dict(zip(idx2word_p, range(0, len(idx2word_p))))
 
+mut_csv = pd.read_csv('./DeepPurpose/ESPF/cell_line_mut.csv')
+mut_name = mut_csv['genetic_feature'].values
+mut_name2idmut_p = dict(zip(mut_name, range(0, len(mut_name))))
+
 from DeepPurpose.chemutils import get_mol, atom_features, bond_features, MAX_NB
 
 def create_var(tensor, requires_grad=None):
@@ -411,6 +415,171 @@ def encode_protein(df_data, target_encoding, column_name = 'Target Sequence', sa
 	else:
 		raise AttributeError("Please use the correct protein encoding available!")
 	return df_data
+
+def encode_cell_line(df_data, target_encoding, column_name = 'Cell line', save_column_name = 'cell_line_encoding'):
+	print('encoding protein...')
+	print('unique target sequence: ' + str(len(df_data[column_name].unique())))
+	if target_encoding == 'Transformer':
+		AA = pd.Series(df_data[column_name].unique()).apply(cell_line2emb_encoder)
+		AA_dict = dict(zip(df_data[column_name].unique(), AA))
+		df_data[save_column_name] = [AA_dict[i] for i in df_data[column_name]]
+	else:
+		raise AttributeError("Please use the correct protein encoding available!")
+	return df_data
+
+def data_using_cell_line_process(X_drug = None, X_cell_line = None, y = None, drug_encoding = None, cell_line_encoding = None,
+									split_method = 'random', frac = [0.7, 0.1, 0.2], random_seed = 1, sample_frac = 1,
+									mode = 'DTI', X_drug_ = None, X_cell_line_ = None):
+	if random_seed == 'TDC':
+		random_seed = 1234
+
+	property_prediction_flag, function_prediction_flag, DDI_flag, PPI_flag, DTI_flag = False, False, False, False, False
+
+	if (X_cell_line is None) and (X_drug is not None) and (X_drug_ is None):
+		property_prediction_flag = True
+	elif (X_cell_line is not None) and (X_drug is None) and (X_cell_line_ is None):
+		function_prediction_flag = True
+	elif (X_drug is not None) and (X_drug_ is not None):
+		DDI_flag = True
+		if (X_drug is None) or (X_drug_ is None):
+			raise AttributeError("Drug pair sequence should be in X_drug, X_drug_")
+	elif (X_cell_line is not None) and (X_cell_line_ is not None):
+		PPI_flag = True
+		if (X_cell_line is None) or (X_cell_line_ is None):
+			raise AttributeError("Target pair sequence should be in X_target, X_target_")
+	elif (X_drug is not None) and (X_cell_line is not None):
+		DTI_flag = True
+		if (X_drug is None) or (X_cell_line is None):
+			raise AttributeError("Target pair sequence should be in X_target, X_drug")
+	else:
+		raise AttributeError("Please use the correct mode. Currently, we support DTI, DDI, PPI, Drug Property Prediction and Protein Function Prediction...")
+
+	if split_method == 'repurposing_VS':
+		y = [-1]*len(X_drug)
+	
+	if DTI_flag:
+		print('Drug Target Interaction Prediction Mode...')
+		if isinstance(X_cell_line, str):
+			X_cell_line = [X_cell_line]
+		if len(X_cell_line) == 1:
+			# one target high throughput screening setting
+			X_cell_line = np.tile(X_cell_line, (length_func(X_drug), ))
+
+		df_data = pd.DataFrame(zip(X_drug, X_cell_line, y))
+		df_data.rename(columns={0:'SMILES',
+								1: 'Cell line',
+								2: 'Label'}, 
+								inplace=True)
+		print('in total: ' + str(len(df_data)) + ' drug-target pairs')
+	
+	elif property_prediction_flag:
+		print('Drug Property Prediction Mode...')
+		df_data = pd.DataFrame(zip(X_drug, y))
+		df_data.rename(columns={0:'SMILES',
+								1: 'Label'}, 
+								inplace=True)
+		print('in total: ' + str(len(df_data)) + ' drugs')
+	elif function_prediction_flag:
+		print('Protein Function Prediction Mode...')
+		df_data = pd.DataFrame(zip(X_cell_line, y))
+		df_data.rename(columns={0:'Cell line',
+								1: 'Label'}, 
+								inplace=True)
+		print('in total: ' + str(len(df_data)) + ' cell line')
+	elif PPI_flag:
+		print('Protein Protein Interaction Prediction Mode...')
+
+		df_data = pd.DataFrame(zip(X_cell_line, X_cell_line_, y))
+		df_data.rename(columns={0: 'Cell line 1',
+								1: 'Cell line 2',
+								2: 'Label'}, 
+								inplace=True)
+		print('in total: ' + str(len(df_data)) + ' cell_line-cell_line pairs')
+	elif DDI_flag:
+		print('Drug Drug Interaction Prediction Mode...')
+
+		df_data = pd.DataFrame(zip(X_drug, X_drug_, y))
+		df_data.rename(columns={0: 'SMILES 1',
+								1: 'SMILES 2',
+								2: 'Label'}, 
+								inplace=True)
+		print('in total: ' + str(len(df_data)) + ' drug-drug pairs')
+
+
+	if sample_frac != 1:
+		df_data = df_data.sample(frac = sample_frac).reset_index(drop = True)
+		print('after subsample: ' + str(len(df_data)) + ' data points...') 
+
+	if DTI_flag:
+		df_data = encode_drug(df_data, drug_encoding)
+		df_data = encode_cell_line(df_data, cell_line_encoding)
+	elif DDI_flag:
+		df_data = encode_drug(df_data, drug_encoding, 'SMILES 1', 'drug_encoding_1')
+		df_data = encode_cell_line(df_data, drug_encoding, 'SMILES 2', 'drug_encoding_2')
+	elif PPI_flag:
+		df_data = encode_cell_line(df_data, cell_line_encoding, 'Cell line 1', 'cell_line_encoding_1')
+		df_data = encode_cell_line(df_data, cell_line_encoding, 'Cell line 2', 'cell_line_encoding_2')
+	elif property_prediction_flag:
+		df_data = encode_drug(df_data, drug_encoding)
+	elif function_prediction_flag:
+		df_data = encode_cell_line(df_data, cell_line_encoding)
+
+	# dti split
+	if DTI_flag:
+		if split_method == 'repurposing_VS':
+			pass
+		else:
+			print('splitting dataset...')
+
+		if split_method == 'random': 
+			train, val, test = create_fold(df_data, random_seed, frac)
+		elif split_method == 'cold_drug':
+			train, val, test = create_fold_setting_cold_drug(df_data, random_seed, frac)
+		elif split_method == 'HTS':
+			train, val, test = create_fold_setting_cold_drug(df_data, random_seed, frac)
+			val = pd.concat([val[val.Label == 1].drop_duplicates(subset = 'SMILES'), val[val.Label == 0]])
+			test = pd.concat([test[test.Label == 1].drop_duplicates(subset = 'SMILES'), test[test.Label == 0]])        
+		elif split_method == 'cold_protein':
+			train, val, test = create_fold_setting_cold_protein(df_data, random_seed, frac)
+		elif split_method == 'repurposing_VS':
+			train = df_data
+			val = df_data
+			test = df_data
+		elif split_method == 'no_split':
+			print('do not do train/test split on the data for already splitted data')
+			return df_data.reset_index(drop=True)
+		else:
+			raise AttributeError("Please select one of the three split method: random, cold_drug, cold_target!")
+	elif DDI_flag:
+		if split_method == 'random': 
+			train, val, test = create_fold(df_data, random_seed, frac)
+		elif split_method == 'no_split':
+			return df_data.reset_index(drop=True)
+	elif PPI_flag:
+		if split_method == 'random': 
+			train, val, test = create_fold(df_data, random_seed, frac)
+		elif split_method == 'no_split':
+			return df_data.reset_index(drop=True)
+	elif function_prediction_flag:
+		if split_method == 'random': 
+			train, val, test = create_fold(df_data, random_seed, frac)
+		elif split_method == 'no_split':
+			return df_data.reset_index(drop=True)
+	elif property_prediction_flag:
+		# drug property predictions
+		if split_method == 'repurposing_VS':
+			train = df_data
+			val = df_data
+			test = df_data
+		elif split_method == 'no_split':
+			print('do not do train/test split on the data for already splitted data')
+			return df_data.reset_index(drop=True)
+		else:
+			train, val, test = create_fold(df_data, random_seed, frac)
+
+	print('Done.')
+	return train.reset_index(drop=True), val.reset_index(drop=True), test.reset_index(drop=True)
+
 
 def data_process(X_drug = None, X_target = None, y=None, drug_encoding=None, target_encoding=None, 
 				 split_method = 'random', frac = [0.7, 0.1, 0.2], random_seed = 1, sample_frac = 1, mode = 'DTI', X_drug_ = None, X_target_ = None):
@@ -871,6 +1040,24 @@ def protein2emb_encoder(x):
         i1 = np.asarray([words2idx_p[i] for i in t1])  # index
     except:
         i1 = np.array([0])
+
+    l = len(i1)
+   
+    if l < max_p:
+        i = np.pad(i1, (0, max_p - l), 'constant', constant_values = 0)
+        input_mask = ([1] * l) + ([0] * (max_p - l))
+    else:
+        i = i1[:max_p]
+        input_mask = [1] * max_p
+        
+    return i, np.asarray(input_mask)
+def cell_line2emb_encoder(x):
+    max_p = 545
+    t1 = x.split(",")  # split
+    try:
+        i1 = np.asarray([mut_name2idmut_p[i] for i in t1])  # index
+    except:
+        i1 = np.array([])
 
     l = len(i1)
    
