@@ -48,11 +48,11 @@ y = df['ic50']
 
 # # Type in the encoding names for drug/protein.
 drug_encoding, target_encoding = 'MPNN', 'Transformer'
-drug_encoding, target_encoding = 'MPNN', 'CNN'
-drug_encoding, target_encoding = 'MPNN', 'RNN'
-drug_encoding, target_encoding = 'GIN', 'Transformer'
-drug_encoding, target_encoding = 'GIN', 'CNN'
-drug_encoding, target_encoding = 'GIN', 'RNN'
+# drug_encoding, target_encoding = 'MPNN', 'CNN'
+# drug_encoding, target_encoding = 'MPNN', 'RNN'
+# drug_encoding, target_encoding = 'GIN', 'Transformer'
+# drug_encoding, target_encoding = 'GIN', 'CNN'
+# drug_encoding, target_encoding = 'GIN', 'RNN'
 # data_using_cell_line_process
 # Data processing, here we select cold protein split setup.
 train, val, test = data_using_cell_line_process(X_drug, X_cell_line, y, 
@@ -61,10 +61,10 @@ train, val, test = data_using_cell_line_process(X_drug, X_cell_line, y,
                                 frac=[0.7,0.1,0.2])
 
 # print(test['target_encoding'].values[0])
-print(test.keys())
-for index, row in test.iterrows():
-	print(row)
-	break
+# print(test.keys())
+# for index, row in test.iterrows():
+# 	print(row)
+# 	break
 
 # Generate new model using default parameters; also allow model tuning via input parameters.
 config = generate_config(drug_encoding, target_encoding, transformer_n_layer_target = 8, train_epoch = 10)
@@ -73,10 +73,10 @@ net = models.model_initialize(**config)
 # Train the new model.
 # Detailed output including a tidy table storing validation loss, metrics, AUC curves figures and etc. are stored in the ./result folder.
 
-# try:
-# 	net.train(train, val, test)
-# except Exception as e:
-#     print(e)
+try:
+	net.train(train, val, test)
+except Exception as e:
+    print(e)
 
 # net.save_model('/models/dit_drug_cell_line_10_final')
 # # or simply load pretrained model from a model directory path or reproduced model name such as DeepDTA

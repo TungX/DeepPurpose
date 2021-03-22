@@ -447,8 +447,6 @@ class DBTA:
 						print('Training at Epoch ' + str(epo + 1) + ' iteration ' + str(i) + \
 							' with loss ' + str(loss.cpu().detach().numpy())[:7] +\
 							". Total time " + str(int(t_now - t_start)/3600)[:7] + " hours")
-						file_name = "/models/dit_drug_cell_line_10/epoc_{}_of{}".format(epo + 1, i)
-						self.save_model(file_name)
 						### record total run time
 
 			##### validate, select the best model up to now 
@@ -471,8 +469,11 @@ class DBTA:
 					lst = ["epoch " + str(epo)] + list(map(float2str,[mse, r2, p_val, CI]))
 					valid_metric_record.append(lst)
 					if mse < max_MSE:
+						file_name = "/models/model_drug_{}_cell_line_{}".format(self.drug_encoding, self.target_encoding)
+						self.save_model(file_name)
 						model_max = copy.deepcopy(self.model)
 						max_MSE = mse
+
 					if verbose:
 						print('Validation at Epoch '+ str(epo + 1) + ' , MSE: ' + str(mse)[:7] + ' , Pearson Correlation: '\
 						 + str(r2)[:7] + ' with p-value: ' + str(p_val)[:7] +' , Concordance Index: '+str(CI)[:7])
