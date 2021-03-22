@@ -18,6 +18,7 @@ torch.manual_seed(2)
 np.random.seed(3)
 import copy
 from prettytable import PrettyTable
+from torch.nn import Sequential, Linear, ReLU
 
 import os
 
@@ -57,6 +58,23 @@ class transformer(nn.Sequential):
 		encoded_layers = self.encoder(emb.float(), ex_e_mask.float())
 		return encoded_layers[:,0]
 
+class GIN(torch.nn.Module):
+	"""docstring for GIN"""
+	def __init__(self, encoding, **config):
+		super(GIN, self).__init__()
+		layer_size = config['gin_drug_layer_size'] 
+		in_ch = [config['gin_drug_num_features_xd'] ] + config['gin_drug_layer_hidden'] + [config['output_dim']]
+		self.conv = nn.ModuleList([GINConv(Linear(in_ch[i], in_ch[i+1]), ReLU(), Linear(in_ch[i+1], in_ch[i+1])) for i in range(layer_size)])
+			
+	def forward(self, v):
+		e = v[0].long().to(device)
+		e_mask = v[1].long().to(device)
+		ex_e_mask = e_mask.unsqueeze(1).unsqueeze(2)
+		ex_e_mask = (1.0 - ex_e_mask) * -10000.0
+
+		emb = self.emb(e)
+		encoded_layers = self.encoder(emb.float(), ex_e_mask.float())
+		return encoded_layers[:,0]	
 
 class CNN(nn.Sequential):
 	def __init__(self, encoding, **config):

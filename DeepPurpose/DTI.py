@@ -265,6 +265,8 @@ class DBTA:
 			self.model_drug = transformer('drug', **config)
 		elif drug_encoding == 'MPNN':
 			self.model_drug = MPNN(config['hidden_dim_drug'], config['mpnn_depth'])
+		elif drug_encoding == 'GIN':
+			self.model_drug = GIN(config['hidden_dim_drug'], config['mpnn_depth'])
 		else:
 			raise AttributeError('Please use one of the available encoding method.')
 
@@ -444,7 +446,9 @@ class DBTA:
 						t_now = time()
 						print('Training at Epoch ' + str(epo + 1) + ' iteration ' + str(i) + \
 							' with loss ' + str(loss.cpu().detach().numpy())[:7] +\
-							". Total time " + str(int(t_now - t_start)/3600)[:7] + " hours") 
+							". Total time " + str(int(t_now - t_start)/3600)[:7] + " hours")
+						file_name = "/models/dit_drug_cell_line_10/epoc_{}_of{}".format(epo + 1, i)
+						self.save_model(file_name)
 						### record total run time
 
 			##### validate, select the best model up to now 

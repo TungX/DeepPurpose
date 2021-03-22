@@ -21,8 +21,8 @@ from zipfile import ZipFile
 import os
 import sys
 
-MAX_ATOM = 200
-MAX_BOND = 400
+MAX_ATOM = 1000
+MAX_BOND = 2000
 
 # ESPF encoding
 vocab_path = './DeepPurpose/ESPF/drug_codes_chembl_freq_1500.txt'
@@ -416,7 +416,7 @@ def encode_protein(df_data, target_encoding, column_name = 'Target Sequence', sa
 		raise AttributeError("Please use the correct protein encoding available!")
 	return df_data
 
-def encode_cell_line(df_data, target_encoding, column_name = 'Cell line', save_column_name = 'cell_line_encoding'):
+def encode_cell_line(df_data, target_encoding, column_name = 'Cell line', save_column_name = 'target_encoding'):
 	print('encoding protein...')
 	print('unique target sequence: ' + str(len(df_data[column_name].unique())))
 	if target_encoding == 'Transformer':
@@ -517,8 +517,8 @@ def data_using_cell_line_process(X_drug = None, X_cell_line = None, y = None, dr
 		df_data = encode_drug(df_data, drug_encoding, 'SMILES 1', 'drug_encoding_1')
 		df_data = encode_cell_line(df_data, drug_encoding, 'SMILES 2', 'drug_encoding_2')
 	elif PPI_flag:
-		df_data = encode_cell_line(df_data, cell_line_encoding, 'Cell line 1', 'cell_line_encoding_1')
-		df_data = encode_cell_line(df_data, cell_line_encoding, 'Cell line 2', 'cell_line_encoding_2')
+		df_data = encode_cell_line(df_data, cell_line_encoding, 'Cell line 1', 'target_encoding_1')
+		df_data = encode_cell_line(df_data, cell_line_encoding, 'Cell line 2', 'target_encoding_2')
 	elif property_prediction_flag:
 		df_data = encode_drug(df_data, drug_encoding)
 	elif function_prediction_flag:
@@ -1067,7 +1067,7 @@ def cell_line2emb_encoder(x):
     else:
         i = i1[:max_p]
         input_mask = [1] * max_p
-        
+    i = i.astype(np.float32)
     return i, np.asarray(input_mask)
 
 def drug2emb_encoder(x):

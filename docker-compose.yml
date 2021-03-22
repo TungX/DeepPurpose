@@ -4,10 +4,11 @@ services:
     # replace username/repo:tag with your name and image details
     image: yinx/deeppurpose:latest
     command: bash
-    # command: bash /source/init.sh
+    # command: sh /source/run.sh
     volumes: 
       - ./:/source
       - ./data:/data
+      - ./models:/models
       # - ./rnn-text-classification-tf:/rnn-text-classification-tf
     # ports:
     #  - "1506:1506"
